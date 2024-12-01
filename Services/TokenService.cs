@@ -33,8 +33,9 @@ public class TokenService : ITokenService
         return Convert.ToBase64String(numberByte);
     }
 
-    private IEnumerable<Claim> GetClaims(AppUser user, List<String> audiences)
+    private async Task<IEnumerable<Claim>> GetClaims(AppUser user, List<String> audiences)
     {
+        var userRoles = await _userManager.GetRolesAsync(user);
         var userList = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),
@@ -43,6 +44,7 @@ public class TokenService : ITokenService
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
         userList.AddRange(audiences.Select(x => new Claim(JwtRegisteredClaimNames.Aud, x)));
+        userList.AddRange(userRoles.Select(x => new Claim(ClaimTypes.Role, x)));
 
         return userList;
     }
@@ -50,9 +52,9 @@ public class TokenService : ITokenService
     private IEnumerable<Claim> GetClaimsByClient(Client client)
     {
         var claims = new List<Claim>();
-        claims.AddRange(client.Audiences.Select(x => new Claim(JwtRegisteredClaimNames.Aud, x)));
+        claims.AddRange(client.Audiences!.Select(x => new Claim(JwtRegisteredClaimNames.Aud, x)));
         new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString());
-        new Claim(JwtRegisteredClaimNames.Sub, client.Id.ToString());
+        new Claim(JwtRegisteredClaimNames.Sub, client.Id!.ToString());
 
         return claims;
     }
@@ -61,7 +63,7 @@ public class TokenService : ITokenService
     {
         var accessTokenExpiration = DateTime.UtcNow.AddMinutes(_tokenOptions.AccessTokenExpiration);
         var refreshTokenExpiration = DateTime.UtcNow.AddMinutes(_tokenOptions.RefreshTokenExpiration);
-        var securityKey = SignService.GetSymmetricSecurityKey(_tokenOptions.SecurityKey);
+        var securityKey = SignService.GetSymmetricSecurityKey(_tokenOptions.SecurityKey!);
         SigningCredentials signingCredentials =
             new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256Signature);
 
@@ -69,7 +71,7 @@ public class TokenService : ITokenService
             issuer: _tokenOptions.Issuer,
             expires: accessTokenExpiration,
             notBefore: DateTime.UtcNow,
-            claims: GetClaims(user: appUser, audiences: _tokenOptions.Audience),
+            claims: GetClaims(user: appUser, audiences: _tokenOptions.Audience!).Result,
             signingCredentials: signingCredentials);
 
         var handler = new JwtSecurityTokenHandler();
