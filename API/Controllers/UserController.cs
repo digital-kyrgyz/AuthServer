@@ -29,4 +29,10 @@ public class UserController : BaseController
     {
         return ActionResultInstance(await _userService.GetUserByNameAsync(HttpContext?.User?.Identity.Name));
     }
+
+    [HttpGet("CreateUserRoles/{email}")]
+    public async Task<IActionResult> CreateUserRoles(string email)
+    {
+        return ActionResultInstance(await _userService.CreateUserRoels(email));
+    }
 }
