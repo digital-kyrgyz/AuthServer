@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MiniApp1.API.Controllers;
 
-[Authorize(Roles = "Admin")]
 [Route("api/[controller]")]
 [ApiController]
 public class StockController : ControllerBase
 {
+    [Authorize(Roles = "Admin", Policy = "AgePolicy")]
     [HttpGet]
     public IActionResult GetStock()
     {
